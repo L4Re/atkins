@@ -2,6 +2,8 @@ PKGDIR ?= ..
 L4DIR  ?= $(PKGDIR)/../../
 
 TEST_GROUP := atkins
+TEST_BUNDLE_MODE = y
+TEST_BUNDLE_NAME = bundle_selftest
 
 NED_CFG_test_cmdline_custom = cmdline_custom.cfg
 
