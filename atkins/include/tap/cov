@@ -13,6 +13,8 @@
 #include <l4/atkins/debug>
 #include <l4/sys/consts.h>
 #include <l4/sys/ipc.h>
+#include <l4/util/util.h>
+#include <l4/sigma0/sigma0.h>
 #include <l4/re/env>
 #include <l4/re/debug>
 
@@ -26,10 +28,51 @@ public:
   virtual void OnTestProgramEnd(testing::UnitTest const &)
   {
     Atkins::Dbg trace{Atkins::Dbg::Trace, "coverage"};
-    // print kernel cov info
+
+#ifdef L4_COV_ENABLED
+    // dump our coverage
+    trace.printf("Dump: test\n");
+    cov_print();
+#endif /* L4_COV_ENABLED */
+
+    // Call the debug interface with a send timeout. This makes
+    // sure if there is no receiver it will not hang forever.
+    l4_timeout_t const Ipc_cov_timeout =
+      l4_timeout(l4_timeout_from_us(100000 /* 100ms */), {0});
+
+    // Use every cap that starts with cov_ and call debug on it
+    for (L4Re::Env::Cap_entry const *c = L4Re::Env::env()->initial_caps();
+         c && c->flags != ~0UL; ++c)
+      {
+        if (!strncmp("cov_", c->name, 4))
+          {
+            auto cap = L4::Cap<L4Re::Debug_obj>(c->cap);
+            if (cap.is_valid())
+              {
+                trace.printf("Dump: %s\n", c->name);
+                l4_ipc_call(cap.cap(), l4_utcb(),
+                            l4_msgtag(L4RE_PROTO_DEBUG, 1, 0, 0),
+                            Ipc_cov_timeout);
+              }
+          }
+      }
+
+    // print sigma0 cov info
+    auto sigma0 = L4Re::Env::env()->get_cap<void>("sigma0");
+    if (sigma0.is_valid())
+      {
+        trace.printf("Dump: sigma0\n");
+        l4_msg_regs_t *v = l4_utcb_mr_u(l4_utcb());
+        v->mr[0] = SIGMA0_REQ_COV;
+        l4_ipc_call(sigma0.cap(), l4_utcb(),
+                    l4_msgtag(L4_PROTO_SIGMA0, 1, 0, 0), Ipc_cov_timeout);
+      }
+
+    // print kernel cov if the kernel is build with coverage
     auto jdb = L4Re::Env::env()->get_cap<void>("jdb");
     if (jdb.is_valid())
       {
+        trace.printf("Dump: kernel\n");
         l4_msg_regs_t *v = l4_utcb_mr_u(l4_utcb());
         v->mr[0] = 0x400;
         l4_ipc_call(jdb.cap(), l4_utcb(),
