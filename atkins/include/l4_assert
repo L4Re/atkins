@@ -421,11 +421,11 @@ testing::AssertionResult l4_cap_obj_equal(char const *expr1, char const *expr2,
 
 /// `expr` flags the IPC error `err`.
 #define EXPECT_L4IPC_ERR(err, expr) \
-  EXPECT_PRED_FORMAT1(Atkins::is_l4_err<err + L4_EIPC_LO>, (expr))
+  EXPECT_PRED_FORMAT1(Atkins::is_l4_err<-l4_ipc_to_errno(err)>, (expr))
 
 /// `expr` flags the IPC error `err`.
 #define ASSERT_L4IPC_ERR(err, expr) \
-  ASSERT_PRED_FORMAT1(Atkins::is_l4_err<err + L4_EIPC_LO>, (expr))
+  ASSERT_PRED_FORMAT1(Atkins::is_l4_err<-l4_ipc_to_errno(err)>, (expr))
 
 /// `expr` is a valid capability slot.
 #define EXPECT_L4CAP(expr) \
