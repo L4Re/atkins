@@ -1,4 +1,4 @@
 provides: libgtest libgmock atkins
-requires: stdlibs-sh libstdc++ stdlibs
+requires: stdlibs-sh libstdc++ stdlibs libsigma0
 optional: libloader
 Maintainer: sarah.hoffmann@kernkonzept.com
